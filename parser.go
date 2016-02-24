@@ -11,18 +11,29 @@ var (
 	specialCharsRegexp     = regexp.MustCompile(`\s|"|'`)
 	backSlashRemovalRegexp = regexp.MustCompile(`\\([\s"'\\])`)
 
-	ErrInvalidArgument      = errors.New("invalid argument(s)")
-	ErrInvalidSyntax        = errors.New("invalid syntax")
+	// ErrInvalidArgument is the error returned when an unexpected character
+	// is found by the parser.
+	ErrInvalidArgument = errors.New("invalid argument(s)")
+
+	// ErrInvalidSyntax is the error returned when some of the syntax rules are
+	// violeted by the input.
+	ErrInvalidSyntax = errors.New("invalid syntax")
+
+	// ErrUnexpectedEndOfInput is the error returned when the parser gets to the
+	// end of the string with an unfinished string.
 	ErrUnexpectedEndOfInput = errors.New("unexpected end of input")
 )
 
+// Parse parses a string into a list or arguments. The default argument
+// separator is one or a sequence of whitespaces but it also understands
+// quotted string and escaped quotes.
 func Parse(input string) ([]string, error) {
 	input = strings.TrimSpace(input)
 	runes := []rune(input)
 
 	var reading bool
 	var startChar rune
-	var startIndex int = -1
+	var startIndex = -1
 
 	read := func(start, end int) []rune {
 		reading = false
@@ -106,7 +117,7 @@ func isValid(index int, input []rune) bool {
 		}
 
 		if input[index-1-counter] == '\\' {
-			counter += 1
+			counter++
 			continue
 		}
 
