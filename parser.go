@@ -28,87 +28,135 @@ var (
 // separator is one or a sequence of whitespaces but it also understands
 // quotted string and escaped quotes.
 func Parse(input string) ([]string, error) {
-	input = strings.TrimSpace(input)
-	runes := []rune(input)
+	return newParser(input).parse()
+}
 
-	var reading bool
-	var startChar rune
-	var startIndex = -1
-
-	read := func(start, end int) []rune {
-		reading = false
-		startChar = 0
-		startIndex = -1
-		return runes[start:end]
+func newParser(input string) *parser {
+	runes := []rune(strings.TrimSpace(input))
+	return &parser{
+		runes:  runes,
+		length: len(runes),
 	}
+}
 
+type parser struct {
+	runes      []rune
+	length     int
+	reading    bool
+	startChar  rune
+	startIndex int
+}
+
+func (p *parser) parse() ([]string, error) {
 	result := []string{}
-	for index, current := range runes {
-		if reading && startChar == ' ' && isSpecial(current) && !isWhitespace(current) {
+	for index, current := range p.runes {
+		if p.checkInvalidArgument(current) {
 			return nil, ErrInvalidArgument
 		}
 
-		if !(reading || isSpecial(current)) {
-			reading = true
-			startChar = ' '
-			startIndex = index
+		if p.shouldStartReadingWord(current) {
+			p.reading = true
+			p.startChar = ' '
+			p.startIndex = index
 
-			if index == len(runes)-1 && startChar == ' ' {
-				result = append(result, string(read(startIndex, len(runes))))
+			if p.shouldFinishReadingAtEndOfInput(index) {
+				result = append(result, string(p.read(p.startIndex, p.length)))
 			}
 			continue
 		}
 
-		if !reading && isSpecial(current) && !isWhitespace(current) {
-			reading = true
-			startChar = current
-			startIndex = index
+		if p.shouldStartReadingQuottedString(current) {
+			p.reading = true
+			p.startChar = current
+			p.startIndex = index
 			continue
 		}
 
-		if !reading {
+		if !p.reading {
 			continue
 		}
 
-		if startChar == ' ' && isWhitespace(current) {
-			if !isValid(index, runes) {
+		if p.shouldFinishReadingWord(current) {
+			if !p.hasValidBackslash(index) {
 				return nil, ErrInvalidSyntax
 			}
-			result = append(result, string(read(startIndex, index)))
+			result = append(result, string(p.read(p.startIndex, index)))
 			continue
 		}
 
-		if startChar == current && isSpecial(startChar) && isValid(index, runes) {
-			result = append(result, string(read(startIndex+1, index)))
+		if p.shouldFinishReadingQuottedString(index, current) {
+			result = append(result, string(p.read(p.startIndex+1, index)))
 			continue
 		}
 
-		if index == len(runes)-1 && startChar == ' ' {
-			result = append(result, string(read(startIndex, len(runes))))
+		if p.shouldFinishReadingAtEndOfInput(index) {
+			result = append(result, string(p.read(p.startIndex, p.length)))
 			continue
 		}
 	}
 
-	if startIndex >= 0 || startChar != 0 {
+	if p.hasEndedUnexpectedly() {
 		return nil, ErrUnexpectedEndOfInput
 	}
 
+	return p.cleanUpResult(result), nil
+}
+
+func (p *parser) shouldFinishReadingAtEndOfInput(index int) bool {
+	return p.isEndOfInput(index) && p.startChar == ' '
+}
+
+func (p *parser) cleanUpResult(result []string) []string {
 	for index, value := range result {
 		result[index] = backSlashRemovalRegexp.ReplaceAllString(value, "$1")
 	}
-
-	return result, nil
+	return result
 }
 
-func isWhitespace(r rune) bool {
+func (p *parser) hasEndedUnexpectedly() bool {
+	return p.startIndex >= 0 || p.startChar != 0
+}
+
+func (p *parser) shouldFinishReadingQuottedString(index int, char rune) bool {
+	return p.startChar == char && p.isSpecial(p.startChar) && p.hasValidBackslash(index)
+}
+
+func (p *parser) shouldFinishReadingWord(char rune) bool {
+	return p.startChar == ' ' && p.isWhitespace(char)
+}
+
+func (p *parser) shouldStartReadingQuottedString(char rune) bool {
+	return !p.reading && p.isSpecial(char) && !p.isWhitespace(char)
+}
+
+func (p *parser) isEndOfInput(index int) bool {
+	return index == p.length-1
+}
+
+func (p *parser) shouldStartReadingWord(char rune) bool {
+	return !(p.reading || p.isSpecial(char))
+}
+
+func (p *parser) checkInvalidArgument(char rune) bool {
+	return p.reading && p.startChar == ' ' && p.isSpecial(char) && !p.isWhitespace(char)
+}
+
+func (p *parser) read(start, end int) []rune {
+	p.reading = false
+	p.startChar = 0
+	p.startIndex = -1
+	return p.runes[start:end]
+}
+
+func (p *parser) isWhitespace(r rune) bool {
 	return whitespaceRegexp.MatchString(string(r))
 }
 
-func isSpecial(r rune) bool {
+func (p *parser) isSpecial(r rune) bool {
 	return specialCharsRegexp.MatchString(string(r))
 }
 
-func isValid(index int, input []rune) bool {
+func (p *parser) hasValidBackslash(index int) bool {
 	counter := 0
 
 	for {
@@ -116,7 +164,7 @@ func isValid(index int, input []rune) bool {
 			break
 		}
 
-		if input[index-1-counter] == '\\' {
+		if p.runes[index-1-counter] == '\\' {
 			counter++
 			continue
 		}
