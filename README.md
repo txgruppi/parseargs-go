@@ -35,6 +35,14 @@ func main() {
 }
 ```
 
+## Tests
+
+```
+go get -u -t github.com/nproc/parseargs-go
+cd $GOPATH/src/github.com/nproc/parseargs-go
+go test ./...
+```
+
 ## License
 
 MIT
