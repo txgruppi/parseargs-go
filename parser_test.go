@@ -3,8 +3,8 @@ package parseargs_test
 import (
 	"testing"
 
-	"github.com/nproc/parseargs-go"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/txgruppi/parseargs-go"
 )
 
 func TestParser(t *testing.T) {

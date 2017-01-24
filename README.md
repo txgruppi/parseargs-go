@@ -1,7 +1,7 @@
-[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/nproc/parseargs-go)
+[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/txgruppi/parseargs-go)
 [![Codeship](https://img.shields.io/codeship/173b62f0-bcc9-0133-0239-6e8926ac3d5c/master.svg?style=flat-square)](https://codeship.com/projects/136367)
-[![Codecov](https://img.shields.io/codecov/c/github/nproc/parseargs-go/master.svg?style=flat-square)](https://codecov.io/github/nproc/parseargs-go)
-[![Go Report Card](https://img.shields.io/badge/go_report-A+-brightgreen.svg?style=flat-square)](https://goreportcard.com/report/github.com/nproc/parseargs-go)
+[![Codecov](https://img.shields.io/codecov/c/github/txgruppi/parseargs-go/master.svg?style=flat-square)](https://codecov.io/github/txgruppi/parseargs-go)
+[![Go Report Card](https://img.shields.io/badge/go_report-A+-brightgreen.svg?style=flat-square)](https://goreportcard.com/report/github.com/txgruppi/parseargs-go)
 
 # `parseargs-go`
 
@@ -11,7 +11,7 @@ What about parsing arguments allowing quotes in them? But beware that this libra
 
 ## Installation
 
-`go get -u github.com/nproc/parseargs-go`
+`go get -u github.com/txgruppi/parseargs-go`
 
 ## Example
 
@@ -22,7 +22,7 @@ import (
   "fmt"
   "log"
 
-  "github.com/nproc/parseargs-go"
+  "github.com/txgruppi/parseargs-go"
 )
 
 func main() {
@@ -38,8 +38,8 @@ func main() {
 ## Tests
 
 ```
-go get -u -t github.com/nproc/parseargs-go
-cd $GOPATH/src/github.com/nproc/parseargs-go
+go get -u -t github.com/txgruppi/parseargs-go
+cd $GOPATH/src/github.com/txgruppi/parseargs-go
 go test ./...
 ```
 
