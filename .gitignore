@@ -93,3 +93,5 @@ _testmain.go
 
 # External packages folder
 vendor/
+
+coverage.txt
