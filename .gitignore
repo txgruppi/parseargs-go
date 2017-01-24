@@ -62,7 +62,6 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-
 ### Go ###
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o
@@ -89,3 +88,8 @@ _testmain.go
 *.test
 *.prof
 
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# External packages folder
+vendor/
