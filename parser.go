@@ -3,13 +3,11 @@ package parseargs
 import (
 	"errors"
 	"regexp"
-	"strings"
+	"unicode"
 )
 
 var (
-	whitespaceRegexp       = regexp.MustCompile("\\s")
-	specialCharsRegexp     = regexp.MustCompile(`\s|"|'`)
-	backSlashRemovalRegexp = regexp.MustCompile(`\\([\s"'\\])`)
+	backSlashRemovalRegexp = regexp.MustCompile(`\\([\t-\r\x{85}\p{Z}"'\\])`)
 
 	// ErrInvalidArgument is the error returned when an unexpected character
 	// is found by the parser.
@@ -32,7 +30,7 @@ func Parse(input string) ([]string, error) {
 }
 
 func newParser(input string) *parser {
-	runes := []rune(strings.TrimSpace(input))
+	runes := []rune(input)
 	return &parser{
 		runes:      runes,
 		length:     len(runes),
@@ -150,11 +148,11 @@ func (p *parser) read(start, end int) []rune {
 }
 
 func (p *parser) isWhitespace(r rune) bool {
-	return whitespaceRegexp.MatchString(string(r))
+	return unicode.IsSpace(r)
 }
 
 func (p *parser) isSpecial(r rune) bool {
-	return specialCharsRegexp.MatchString(string(r))
+	return r == '"' || r == '\'' || unicode.IsSpace(r)
 }
 
 func (p *parser) hasValidBackslash(index int) bool {

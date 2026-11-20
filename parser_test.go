@@ -74,6 +74,36 @@ func TestParse(t *testing.T) {
 			input:    "  \t\n ",
 			expected: []string{},
 		},
+		{
+			name:     "should trim leading and trailing spaces via tokenizer",
+			input:    " a b ",
+			expected: []string{`a`, `b`},
+		},
+		{
+			name:     "should trim leading vertical tab and trailing nbsp",
+			input:    "\vabc\u00a0",
+			expected: []string{`abc`},
+		},
+		{
+			name:     "should split on nbsp between words",
+			input:    "abc\u00a0def",
+			expected: []string{`abc`, `def`},
+		},
+		{
+			name:     "should split on vertical tab between words",
+			input:    "abc\vdef",
+			expected: []string{`abc`, `def`},
+		},
+		{
+			name:     "should preserve nbsp inside single quotes",
+			input:    "'a\u00a0b'",
+			expected: []string{"a\u00a0b"},
+		},
+		{
+			name:     "should remove escaped nbsp inside double quotes",
+			input:    "\"a\\\u00a0b\"",
+			expected: []string{"a\u00a0b"},
+		},
 	}
 
 	for _, tc := range valid {
@@ -111,6 +141,16 @@ func TestParse(t *testing.T) {
 		{
 			name:     "should not allow escaped spaces",
 			input:    `my\ string of arguments`,
+			expected: parseargs.ErrInvalidSyntax,
+		},
+		{
+			name:     "should not allow trailing escaped space",
+			input:    `abc\ `,
+			expected: parseargs.ErrInvalidSyntax,
+		},
+		{
+			name:     "should not allow trailing escaped nbsp",
+			input:    "abc\\\u00a0",
 			expected: parseargs.ErrInvalidSyntax,
 		},
 	}
