@@ -34,8 +34,9 @@ func Parse(input string) ([]string, error) {
 func newParser(input string) *parser {
 	runes := []rune(strings.TrimSpace(input))
 	return &parser{
-		runes:  runes,
-		length: len(runes),
+		runes:      runes,
+		length:     len(runes),
+		startIndex: -1,
 	}
 }
 

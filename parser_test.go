@@ -1,126 +1,129 @@
 package parseargs_test
 
 import (
+	"errors"
+	"reflect"
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
 	"github.com/txgruppi/parseargs-go"
 )
 
-func TestParser(t *testing.T) {
-	Convey("valid", t, func() {
-		Convey("should understand simple words", func() {
-			input := `my string of arguments`
-			expected := []string{`my`, `string`, `of`, `arguments`}
-			actual, err := parseargs.Parse(input)
-			So(err, ShouldBeNil)
-			So(actual, ShouldResemble, expected)
-		})
+func TestParse(t *testing.T) {
+	valid := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:     "should understand simple words",
+			input:    `my string of arguments`,
+			expected: []string{`my`, `string`, `of`, `arguments`},
+		},
+		{
+			name:     "should understand single quote",
+			input:    `my 'string of arguments'`,
+			expected: []string{`my`, `string of arguments`},
+		},
+		{
+			name:     "should understand double quote",
+			input:    `"my string" of arguments`,
+			expected: []string{`my string`, `of`, `arguments`},
+		},
+		{
+			name:     "should understand escaped single quote",
+			input:    `my 'string \'of\'' arguments`,
+			expected: []string{`my`, `string 'of'`, `arguments`},
+		},
+		{
+			name:     "should understand escaped double quote",
+			input:    `my "string \"of\"" arguments`,
+			expected: []string{`my`, `string "of"`, `arguments`},
+		},
+		{
+			name:     "should understand double quotes inside single quotted string",
+			input:    `my 'string "of" arguments'`,
+			expected: []string{`my`, `string "of" arguments`},
+		},
+		{
+			name:     "should understand single quotes inside double quotted string",
+			input:    `my "string 'of' arguments"`,
+			expected: []string{`my`, `string 'of' arguments`},
+		},
+		{
+			name:     "should ignore consecutive spaces",
+			input:    `my     string of    arguments`,
+			expected: []string{`my`, `string`, `of`, `arguments`},
+		},
+		{
+			name:     "should accept tabs, newlines and cartridge returns as spaces",
+			input:    "my\tstring\nof\rarguments",
+			expected: []string{`my`, `string`, `of`, `arguments`},
+		},
+		{
+			name:     "should read a one char word at the end of the input",
+			input:    `my string of arguments 0`,
+			expected: []string{`my`, `string`, `of`, `arguments`, `0`},
+		},
+		{
+			name:     "should return an empty list for empty input",
+			input:    "",
+			expected: []string{},
+		},
+		{
+			name:     "should return an empty list for whitespace-only input",
+			input:    "  \t\n ",
+			expected: []string{},
+		},
+	}
 
-		Convey("should understand single quote", func() {
-			input := `my 'string of arguments'`
-			expected := []string{`my`, `string of arguments`}
-			actual, err := parseargs.Parse(input)
-			So(err, ShouldBeNil)
-			So(actual, ShouldResemble, expected)
+	for _, tc := range valid {
+		t.Run("valid/"+tc.name, func(t *testing.T) {
+			actual, err := parseargs.Parse(tc.input)
+			if err != nil {
+				t.Fatalf("Parse(%q): unexpected error: %v", tc.input, err)
+			}
+			if !reflect.DeepEqual(actual, tc.expected) {
+				t.Fatalf("Parse(%q) = %q, want %q", tc.input, actual, tc.expected)
+			}
 		})
+	}
 
-		Convey("should understand double quote", func() {
-			input := `"my string" of arguments`
-			expected := []string{`my string`, `of`, `arguments`}
-			actual, err := parseargs.Parse(input)
-			So(err, ShouldBeNil)
-			So(actual, ShouldResemble, expected)
-		})
+	invalid := []struct {
+		name     string
+		input    string
+		expected error
+	}{
+		{
+			name:     "should not allow for a quotted string to start right after a word",
+			input:    `my"string" of arguments`,
+			expected: parseargs.ErrInvalidArgument,
+		},
+		{
+			name:     "should detect unexpected EOF",
+			input:    `my "string of arguments`,
+			expected: parseargs.ErrUnexpectedEndOfInput,
+		},
+		{
+			name:     "should detect wrongly escaped quotes",
+			input:    `my \\"string\\" of arguments`,
+			expected: parseargs.ErrInvalidArgument,
+		},
+		{
+			name:     "should not allow escaped spaces",
+			input:    `my\ string of arguments`,
+			expected: parseargs.ErrInvalidSyntax,
+		},
+	}
 
-		Convey("should understand escaped single quote", func() {
-			input := `my 'string \'of\'' arguments`
-			expected := []string{`my`, `string 'of'`, `arguments`}
-			actual, err := parseargs.Parse(input)
-			So(err, ShouldBeNil)
-			So(actual, ShouldResemble, expected)
+	for _, tc := range invalid {
+		t.Run("invalid/"+tc.name, func(t *testing.T) {
+			_, err := parseargs.Parse(tc.input)
+			if err == nil {
+				t.Fatalf("Parse(%q): expected error, got nil", tc.input)
+			}
+			if !errors.Is(err, tc.expected) {
+				t.Fatalf("Parse(%q): error = %v, want %v", tc.input, err, tc.expected)
+			}
 		})
-
-		Convey("should understand escaped double quote", func() {
-			input := `my "string \"of\"" arguments`
-			expected := []string{`my`, `string "of"`, `arguments`}
-			actual, err := parseargs.Parse(input)
-			So(err, ShouldBeNil)
-			So(actual, ShouldResemble, expected)
-		})
-
-		Convey("should understand double quotes inside single quotted string", func() {
-			input := `my 'string "of" arguments'`
-			expected := []string{`my`, `string "of" arguments`}
-			actual, err := parseargs.Parse(input)
-			So(err, ShouldBeNil)
-			So(actual, ShouldResemble, expected)
-		})
-
-		Convey("should understand single quotes inside double quotted string", func() {
-			input := `my "string 'of' arguments"`
-			expected := []string{`my`, `string 'of' arguments`}
-			actual, err := parseargs.Parse(input)
-			So(err, ShouldBeNil)
-			So(actual, ShouldResemble, expected)
-		})
-
-		Convey("should ignore consecutive spaces", func() {
-			input := `my     string of    arguments`
-			expected := []string{`my`, `string`, `of`, `arguments`}
-			actual, err := parseargs.Parse(input)
-			So(err, ShouldBeNil)
-			So(actual, ShouldResemble, expected)
-		})
-
-		Convey("should accept tabs, newlines and cartridge returns as spaces", func() {
-			input := "my\tstring\nof\rarguments"
-			expected := []string{`my`, `string`, `of`, `arguments`}
-			actual, err := parseargs.Parse(input)
-			So(err, ShouldBeNil)
-			So(actual, ShouldResemble, expected)
-		})
-
-		Convey("should read a one char word at the end of the input", func() {
-			input := `my string of arguments 0`
-			expected := []string{`my`, `string`, `of`, `arguments`, `0`}
-			actual, err := parseargs.Parse(input)
-			So(err, ShouldBeNil)
-			So(actual, ShouldResemble, expected)
-		})
-	})
-
-	Convey("invalid", t, func() {
-		Convey("should not allow for a quotted string to start right after a word", func() {
-			input := `my"string" of arguments`
-			expected := `invalid argument(s)`
-			_, err := parseargs.Parse(input)
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, expected)
-		})
-
-		Convey("should detect unexpected EOF", func() {
-			input := `my "string of arguments`
-			expected := `unexpected end of input`
-			_, err := parseargs.Parse(input)
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, expected)
-		})
-
-		Convey("should detect wrongly escaped quotes", func() {
-			input := `my \\"string\\" of arguments`
-			expected := `invalid argument(s)`
-			_, err := parseargs.Parse(input)
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, expected)
-		})
-
-		Convey("should not allow escaped spaces", func() {
-			input := `my\ string of arguments`
-			expected := `invalid syntax`
-			_, err := parseargs.Parse(input)
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, expected)
-		})
-	})
+	}
 }
